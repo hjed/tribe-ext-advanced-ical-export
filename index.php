@@ -71,14 +71,86 @@ if (
 			}
 
 			// Insert filters and hooks here
-			add_filter( 'thing_we_are_filtering', array( $this, 'my_custom_function' ) );
+			add_action( 'pre_get_posts', array( $this, 'filter_ical_query' ) );
 		}
 
 		/**
-		 * Include a docblock for every class method and property.
+		 * Filtering the query for dates
+		 *
+		 * @param $query
 		 */
-		public function my_custom_function() {
-			// custom stuff
+		function filter_ical_query( $query ) {
+
+			if ( ! isset( $_GET['ical'] )
+			     || ! isset( $query->tribe_is_event_query )
+			     || ! $query->tribe_is_event_query ) {
+				return;
+			}
+
+			$tribe_display	= $_GET[ 'tribe_display' ];
+			$start_date	    = isset( $_GET[ 'start_date' ] ) ? $_GET[ 'start_date' ] : "";
+			$end_date	    = isset( $_GET[ 'end_date' ] )   ? $_GET[ 'end_date' ]   : "";
+
+			if( $tribe_display === 'custom' ) {
+
+				// Check if there is a start_date set
+				if( isset( $start_date ) && !empty( $start_date ) ) {
+					// Full date
+					if ( $this->validateDate( $start_date, 'Y-m-d' ) ) {
+						$start_of_year = $start_date;
+					}
+					// Only year, then from beginning of that year
+					elseif ( $this->validateDate( $start_date, 'Y' ) ) {
+						$start_of_year = $start_date . '-01-01';
+					}
+					// If set to anything else then fall back to this year's beginning
+					else {
+						$start_of_year = date( 'Y' ) . '-01-01';
+					}
+				}
+				// If not, fall back to this year's beginning
+				else {
+					$start_of_year = date( 'Y' ) . '-01-01';
+				}
+
+				// Check if there is an end_date set
+				if( isset( $end_date ) && ! empty( $end_date ) ) {
+					// Full date
+					if( $this->validateDate( $end_date, 'Y-m-d' ) ) {
+						$end_of_year = $end_date;
+					}
+					// Only year, then end of that year (Max. 3 years ahead)
+					elseif( $this->validateDate( $end_date, 'Y' ) && date( 'Y' ) <= $end_date && $end_date <= date('Y') + 3 ) {
+						$end_of_year = $end_date . '-12-31';
+					}
+				}
+				// If there is no end date but there was a start year defined, then till the end of that year
+				elseif( $this->validateDate( $start_date, 'Y' ) ) {
+					$end_of_year = $start_date . '-12-31';
+				}
+				// If no end date defined, fall back to this year's end
+				else {
+					$end_of_year = date( 'Y' ) . '-12-31';
+				}
+
+				$query->set( 'eventDisplay', 'custom' );
+				$query->set( 'start_date', $start_of_year );
+				$query->set( 'end_date', $end_of_year );
+				$query->set( 'posts_per_page', - 1 );
+			}
+		}
+
+		/**
+		 * Validates the date
+		 *
+		 * param $date
+		 * @param string $format
+		 *
+		 * @return bool
+		 */
+		function validateDate( $date, $format = 'Y-m-d H:i:s' ) {
+			$d = DateTime::createFromFormat( $format, $date );
+			return $d && $d->format( $format ) == $date;
 		}
 
 	} // end class
