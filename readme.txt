@@ -1,6 +1,3 @@
-# The Events Calendar Extension: Advanced iCal Export
-Advanced export possibilities through iCal feed
-
 === The Events Calendar Extension: Advanced iCal Export ===
 Contributors: ModernTribe
 Donate link: http://m.tri.be/29
