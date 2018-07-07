@@ -24,10 +24,7 @@
  */
 
 // Do not load unless Tribe Common is fully loaded and our class does not yet exist.
-if (
-	class_exists( 'Tribe__Extension' )
-	&& ! class_exists( 'Tribe__Extension__Advanced_iCal_Export' )
-) {
+if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Advanced_iCal_Export' ) ) {
 	/**
 	 * Extension main class, class begins loading on init() function.
 	 */
@@ -47,7 +44,6 @@ if (
 		 */
 		public function init() {
 			// Load plugin textdomain
-			// Don't forget to generate the 'languages/tribe-ext-advanced-ical-export.pot' file
 			load_plugin_textdomain( 'tribe-ext-advanced-ical-export', false, basename( dirname( __FILE__ ) ) . '/languages/' );
 
 			/**
@@ -57,11 +53,8 @@ if (
 			$php_required_version = '5.6';
 
 			if ( version_compare( PHP_VERSION, $php_required_version, '<' ) ) {
-				if (
-					is_admin()
-					&& current_user_can( 'activate_plugins' )
-				) {
-					$message = '<p>';
+				if ( is_admin() && current_user_can( 'activate_plugins' ) ) {
+					$message  = '<p>';
 					$message .= sprintf( __( '%s requires PHP version %s or newer to work. Please contact your website host and inquire about updating PHP.', 'tribe-ext-advanced-ical-export' ), $this->get_name(), $php_required_version );
 					$message .= sprintf( ' <a href="%1$s">%1$s</a>', 'https://wordpress.org/about/requirements/' );
 					$message .= '</p>';
@@ -79,7 +72,7 @@ if (
 		 *
 		 * @param $query
 		 */
-		function filter_ical_query( $query ) {
+		public function filter_ical_query( $query ) {
 
 			if ( ! isset( $_GET['ical'] )
 			     || ! isset( $query->tribe_is_event_query )
@@ -87,20 +80,20 @@ if (
 				return;
 			}
 
-			$tribe_display	= $_GET[ 'tribe_display' ];
-			$start_date	    = isset( $_GET[ 'start_date' ] ) ? $_GET[ 'start_date' ] : "";
-			$end_date	    = isset( $_GET[ 'end_date' ] )   ? $_GET[ 'end_date' ]   : "";
+			$tribe_display = $_GET[ 'tribe_display' ];
+			$start_date    = isset( $_GET[ 'start_date' ] ) ? $_GET[ 'start_date' ] : '';
+			$end_date      = isset( $_GET[ 'end_date' ] )   ? $_GET[ 'end_date' ]   : '';
 
-			if( $tribe_display === 'custom' ) {
+			if ( $tribe_display === 'custom' ) {
 
 				// Check if there is a start_date set
-				if( isset( $start_date ) && !empty( $start_date ) ) {
+				if ( isset( $start_date ) && !empty( $start_date ) ) {
 					// Full date
-					if ( $this->validateDate( $start_date, 'Y-m-d' ) ) {
+					if ( $this->validate_date( $start_date, 'Y-m-d' ) ) {
 						$start_of_year = $start_date;
 					}
 					// Only year, then from beginning of that year
-					elseif ( $this->validateDate( $start_date, 'Y' ) ) {
+					elseif ( $this->validate_date( $start_date, 'Y' ) ) {
 						$start_of_year = $start_date . '-01-01';
 					}
 					// If set to anything else then fall back to this year's beginning
@@ -114,18 +107,18 @@ if (
 				}
 
 				// Check if there is an end_date set
-				if( isset( $end_date ) && ! empty( $end_date ) ) {
+				if ( isset( $end_date ) && ! empty( $end_date ) ) {
 					// Full date
-					if( $this->validateDate( $end_date, 'Y-m-d' ) ) {
+					if ( $this->validate_date( $end_date, 'Y-m-d' ) ) {
 						$end_of_year = $end_date;
 					}
 					// Only year, then end of that year (Max. 3 years ahead)
-					elseif( $this->validateDate( $end_date, 'Y' ) && date( 'Y' ) <= $end_date && $end_date <= date('Y') + 3 ) {
+					elseif ( $this->validate_date( $end_date, 'Y' ) && date( 'Y' ) <= $end_date && $end_date <= date('Y') + 3 ) {
 						$end_of_year = $end_date . '-12-31';
 					}
 				}
 				// If there is no end date but there was a start year defined, then till the end of that year
-				elseif( $this->validateDate( $start_date, 'Y' ) ) {
+				elseif ( $this->validate_date( $start_date, 'Y' ) ) {
 					$end_of_year = $start_date . '-12-31';
 				}
 				// If no end date defined, fall back to this year's end
@@ -148,7 +141,7 @@ if (
 		 *
 		 * @return bool
 		 */
-		function validateDate( $date, $format = 'Y-m-d H:i:s' ) {
+		public function validate_date( $date, $format = 'Y-m-d H:i:s' ) {
 			$d = DateTime::createFromFormat( $format, $date );
 			return $d && $d->format( $format ) == $date;
 		}
