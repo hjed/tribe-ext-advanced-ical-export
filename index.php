@@ -64,8 +64,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			}
 
 			// Insert filters and hooks here
-			//add_action( 'pre_get_posts', array( $this, 'filter_ical_query' ) );
-			add_filter( 'tribe_ical_feed_month_view_query_args', array( $this, 'filter_ical_query' ), 10, 2 );
+			add_filter( 'tribe_ical_feed_month_view_query_args', array( $this, 'filter_ical_query' ) );
 		}
 
 		/**
@@ -73,13 +72,9 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 		 *
 		 * @param $query
 		 */
-		public function filter_ical_query( $args, $month ) {
+		public function filter_ical_query( $args ) {
 
-			if ( ! isset( $_GET['ical'] )
-			     || ! isset( $query->tribe_is_event_query )
-			     || ! $query->tribe_is_event_query ) {
-				return;
-			}
+			if ( ! isset( $_GET['ical'] ) ) return;
 
 			$tribe_display = $_GET[ 'tribe_display' ];
 			$start_date    = isset( $_GET['start_date'] )
@@ -137,7 +132,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 				$args['posts_per_page'] = -1;
 				$args['hide_upcoming']  = true;
 
-				return array( $args, $month );
+				return $args;
 			}
 		}
 
