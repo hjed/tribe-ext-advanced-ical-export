@@ -64,7 +64,8 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			}
 
 			// Insert filters and hooks here
-			add_action( 'pre_get_posts', array( $this, 'filter_ical_query' ) );
+			//add_action( 'pre_get_posts', array( $this, 'filter_ical_query' ) );
+			add_filter( 'tribe_ical_feed_month_view_query_args', array( $this, 'filter_ical_query' ), 10, 2 );
 		}
 
 		/**
@@ -72,7 +73,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 		 *
 		 * @param $query
 		 */
-		public function filter_ical_query( $query ) {
+		public function filter_ical_query( $args, $month ) {
 
 			if ( ! isset( $_GET['ical'] )
 			     || ! isset( $query->tribe_is_event_query )
@@ -81,8 +82,12 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			}
 
 			$tribe_display = $_GET[ 'tribe_display' ];
-			$start_date    = isset( $_GET[ 'start_date' ] ) ? $_GET[ 'start_date' ] : '';
-			$end_date      = isset( $_GET[ 'end_date' ] )   ? $_GET[ 'end_date' ]   : '';
+			$start_date    = isset( $_GET['start_date'] )
+				? filter_var( $_GET['start_date'], FILTER_SANITIZE_STRING )
+				: '';
+			$end_date    = isset( $_GET['end_date'] )
+				? filter_var( $_GET['end_date'], FILTER_SANITIZE_STRING )
+				: '';
 
 			if ( $tribe_display === 'custom' ) {
 
@@ -126,10 +131,13 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 					$end_of_year = date( 'Y' ) . '-12-31';
 				}
 
-				$query->set( 'eventDisplay', 'custom' );
-				$query->set( 'start_date', $start_of_year );
-				$query->set( 'end_date', $end_of_year );
-				$query->set( 'posts_per_page', - 1 );
+				$args['eventDisplay']   = 'custom';
+				$args['start_date']     = $start_of_year;
+				$args['end_date']       = $end_of_year;
+				$args['posts_per_page'] = -1;
+				$args['hide_upcoming']  = true;
+
+				return array( $args, $month );
 			}
 		}
 
