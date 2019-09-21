@@ -65,6 +65,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 
 			// Insert filters and hooks here
 			add_filter( 'tribe_ical_feed_month_view_query_args', array( $this, 'filter_ical_query' ) );
+			add_filter( 'tribe_events_ical_events_list_args', array( $this, 'filter_ical_query' ) );
 		}
 
 		/**
@@ -74,7 +75,8 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 		 */
 		public function filter_ical_query( $args ) {
 
-			if ( ! isset( $_GET['ical'] ) ) return;
+			// If ical is not set in the URL then bail
+			if ( ! isset( $_GET['ical'] ) || $_GET['ical'] != 1 ) return $args;
 
 			$tribe_display = $_GET[ 'tribe_display' ];
 			$start_date    = isset( $_GET['start_date'] )
@@ -125,6 +127,10 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 				else {
 					$end_of_year = date( 'Y' ) . '-12-31';
 				}
+
+				// Adding one day to the end date to include the submitted end day
+				$end_of_year = date( 'Y-m-d', strtotime( $end_of_year . "+1 days" ) );
+
 
 				$args['eventDisplay']   = 'custom';
 				$args['start_date']     = $start_of_year;
