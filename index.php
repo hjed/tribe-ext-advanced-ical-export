@@ -71,25 +71,31 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 		/**
 		 * Filtering the query for dates
 		 *
-		 * @param $query
+		 * @param $args
+		 *
+		 * @return array
 		 */
 		public function filter_ical_query( $args ) {
 
 			// If ical is not set in the URL then bail
-			if ( ! isset( $_GET['ical'] ) || $_GET['ical'] != 1 ) return $args;
+			if ( ! isset( $_GET['ical'] ) || $_GET['ical'] != 1 ) {
+				return;
+			}
 
-			$tribe_display = $_GET[ 'tribe_display' ];
+			$tribe_display = isset( $_GET['tribe_display'] )
+				? filter_var( $_GET['tribe_display'], FILTER_SANITIZE_STRING )
+				: '';
 			$start_date    = isset( $_GET['start_date'] )
 				? filter_var( $_GET['start_date'], FILTER_SANITIZE_STRING )
 				: '';
-			$end_date    = isset( $_GET['end_date'] )
+			$end_date      = isset( $_GET['end_date'] )
 				? filter_var( $_GET['end_date'], FILTER_SANITIZE_STRING )
 				: '';
 
 			if ( $tribe_display === 'custom' ) {
 
 				// Check if there is a start_date set
-				if ( isset( $start_date ) && !empty( $start_date ) ) {
+				if ( isset( $start_date ) && ! empty( $start_date ) ) {
 					// Full date
 					if ( $this->validate_date( $start_date, 'Y-m-d' ) ) {
 						$start_of_year = $start_date;
@@ -115,7 +121,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 						$end_of_year = $end_date;
 					}
 					// Only year, then end of that year (Max. 3 years ahead)
-					elseif ( $this->validate_date( $end_date, 'Y' ) && date( 'Y' ) <= $end_date && $end_date <= date('Y') + 3 ) {
+					elseif ( $this->validate_date( $end_date, 'Y' ) && date( 'Y' ) <= $end_date && $end_date <= date( 'Y' ) + 3 ) {
 						$end_of_year = $end_date . '-12-31';
 					}
 				}
@@ -131,27 +137,29 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 				// Adding one day to the end date to include the submitted end day
 				$end_of_year = date( 'Y-m-d', strtotime( $end_of_year . "+1 days" ) );
 
-
 				$args['eventDisplay']   = 'custom';
 				$args['start_date']     = $start_of_year;
 				$args['end_date']       = $end_of_year;
 				$args['posts_per_page'] = -1;
 				$args['hide_upcoming']  = true;
 
-				return $args;
 			}
+
+			return $args;
 		}
 
 		/**
 		 * Validates the date
 		 *
 		 * param $date
+		 *
 		 * @param string $format
 		 *
 		 * @return bool
 		 */
 		public function validate_date( $date, $format = 'Y-m-d H:i:s' ) {
 			$d = DateTime::createFromFormat( $format, $date );
+
 			return $d && $d->format( $format ) == $date;
 		}
 
