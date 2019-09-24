@@ -78,7 +78,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 		public function filter_ical_query( $args ) {
 
 			$filters = [
-				'ical'          => FILTER_SANITIZE_INT,
+				'ical'          => FILTER_SANITIZE_NUMBER_INT,
 				'tribe_display' => FILTER_SANITIZE_STRING,
 				'start_date'    => FILTER_SANITIZE_STRING,
 				'end_date'      => FILTER_SANITIZE_STRING,
