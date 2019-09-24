@@ -118,8 +118,8 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 					if ( $this->validate_date( $vars['end_date'], 'Y-m-d' ) ) {
 						$end_of_year = $vars['end_date'];
 					}
-					// Only year, then end of that year (Max. 3 years ahead)
-					elseif ( $this->validate_date( $vars['end_date'], 'Y' ) && date( 'Y' ) <= $vars['end_date'] && $end_date <= date( 'Y' ) + 3 ) {
+					// If only year is submitted, then until end of that year (Max. 3 years ahead)
+					elseif ( $this->validate_date( $vars['end_date'], 'Y' ) && date( 'Y' ) <= $vars['end_date'] && $vars['end_date'] <= date( 'Y' ) + 3 ) {
 						$end_of_year = $vars['end_date'] . '-12-31';
 					}
 				}
@@ -133,7 +133,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 				}
 
 				// Adding one day to the end date to include the submitted end day
-				$end_of_year = date( 'Y-m-d', strtotime( $end_of_year . "+1 days" ) );
+				$end_of_year = date( 'Y-m-d', strtotime( $end_of_year . '+1 days' ) );
 
 				$args['eventDisplay']   = 'custom';
 				$args['start_date']     = $start_of_year;
