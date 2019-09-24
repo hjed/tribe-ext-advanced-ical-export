@@ -77,20 +77,18 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 		 */
 		public function filter_ical_query( $args ) {
 
+			$filters = [
+				'ical' => FILTER_SANITIZE_INT,
+				'tribe_display' => FILTER_SANITIZE_STRING,
+				'start_date' => FILTER_SANITIZE_STRING,
+				'end_date' => FILTER_SANITIZE_STRING,
+			];
+			$vars = filter_input_array( INPUT_GET, $filters );
+
 			// If ical is not set in the URL then bail
-			if ( ! isset( $_GET['ical'] ) || $_GET['ical'] != 1 ) {
+			if ( ! isset( $vars['ical'] ) || $vars['ical'] != 1 ) {
 				return;
 			}
-
-			$tribe_display = isset( $_GET['tribe_display'] )
-				? filter_var( $_GET['tribe_display'], FILTER_SANITIZE_STRING )
-				: '';
-			$start_date    = isset( $_GET['start_date'] )
-				? filter_var( $_GET['start_date'], FILTER_SANITIZE_STRING )
-				: '';
-			$end_date      = isset( $_GET['end_date'] )
-				? filter_var( $_GET['end_date'], FILTER_SANITIZE_STRING )
-				: '';
 
 			if ( $tribe_display === 'custom' ) {
 
