@@ -3,8 +3,8 @@
  * Plugin Name:       The Events Calendar Extension: Advanced iCal Export
  * Plugin URI:        https://theeventscalendar.com/extensions/advanced-ical-export/
  * GitHub Plugin URI: https://github.com/mt-support/extension-template
- * Description:       The extension gives you advanced export possibilities through the iCal feed
- * Version:           1.0.0
+ * Description:       The extension gives you advanced export possibilities through the iCal feed.
+ * Version:           1.1.0
  * Extension Class:   Tribe__Extension__Advanced_iCal_Export
  * Author:            Modern Tribe, Inc.
  * Author URI:        http://m.tri.be/1971
@@ -64,37 +64,43 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			}
 
 			// Insert filters and hooks here
-			add_action( 'pre_get_posts', array( $this, 'filter_ical_query' ) );
+			add_filter( 'tribe_ical_feed_month_view_query_args', array( $this, 'filter_ical_query' ) );
+			add_filter( 'tribe_events_ical_events_list_args', array( $this, 'filter_ical_query' ) );
 		}
 
 		/**
 		 * Filtering the query for dates
 		 *
-		 * @param $query
+		 * @param $args
+		 *
+		 * @return array
 		 */
-		public function filter_ical_query( $query ) {
+		public function filter_ical_query( $args ) {
 
-			if ( ! isset( $_GET['ical'] )
-			     || ! isset( $query->tribe_is_event_query )
-			     || ! $query->tribe_is_event_query ) {
+			$filters = [
+				'ical'          => FILTER_SANITIZE_NUMBER_INT,
+				'tribe_display' => FILTER_SANITIZE_STRING,
+				'start_date'    => FILTER_SANITIZE_STRING,
+				'end_date'      => FILTER_SANITIZE_STRING,
+			];
+			$vars = filter_input_array( INPUT_GET, $filters );
+
+			// If ical is not set in the URL then bail
+			if ( ! isset( $vars['ical'] ) || $vars['ical'] != 1 ) {
 				return;
 			}
 
-			$tribe_display = $_GET[ 'tribe_display' ];
-			$start_date    = isset( $_GET[ 'start_date' ] ) ? $_GET[ 'start_date' ] : '';
-			$end_date      = isset( $_GET[ 'end_date' ] )   ? $_GET[ 'end_date' ]   : '';
-
-			if ( $tribe_display === 'custom' ) {
+			if ( $vars['tribe_display'] === 'custom' ) {
 
 				// Check if there is a start_date set
-				if ( isset( $start_date ) && !empty( $start_date ) ) {
+				if ( isset( $vars['start_date'] ) && ! empty( $vars['start_date'] ) ) {
 					// Full date
-					if ( $this->validate_date( $start_date, 'Y-m-d' ) ) {
-						$start_of_year = $start_date;
+					if ( $this->validate_date( $vars['start_date'], 'Y-m-d' ) ) {
+						$start_of_year = $vars['start_date'];
 					}
 					// Only year, then from beginning of that year
-					elseif ( $this->validate_date( $start_date, 'Y' ) ) {
-						$start_of_year = $start_date . '-01-01';
+					elseif ( $this->validate_date( $vars['start_date'], 'Y' ) ) {
+						$start_of_year = $vars['start_date'] . '-01-01';
 					}
 					// If set to anything else then fall back to this year's beginning
 					else {
@@ -107,42 +113,51 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 				}
 
 				// Check if there is an end_date set
-				if ( isset( $end_date ) && ! empty( $end_date ) ) {
+				if ( isset( $vars['end_date'] ) && ! empty( $vars['end_date'] ) ) {
 					// Full date
-					if ( $this->validate_date( $end_date, 'Y-m-d' ) ) {
-						$end_of_year = $end_date;
+					if ( $this->validate_date( $vars['end_date'], 'Y-m-d' ) ) {
+						$end_of_year = $vars['end_date'];
 					}
-					// Only year, then end of that year (Max. 3 years ahead)
-					elseif ( $this->validate_date( $end_date, 'Y' ) && date( 'Y' ) <= $end_date && $end_date <= date('Y') + 3 ) {
-						$end_of_year = $end_date . '-12-31';
+					// If only year is submitted, then until end of that year (Max. 3 years ahead)
+					elseif ( $this->validate_date( $vars['end_date'], 'Y' ) && date( 'Y' ) <= $vars['end_date'] && $vars['end_date'] <= date( 'Y' ) + 3 ) {
+						$end_of_year = $vars['end_date'] . '-12-31';
 					}
 				}
 				// If there is no end date but there was a start year defined, then till the end of that year
-				elseif ( $this->validate_date( $start_date, 'Y' ) ) {
-					$end_of_year = $start_date . '-12-31';
+				elseif ( $this->validate_date( $vars['start_date'], 'Y' ) ) {
+					$end_of_year = $vars['start_date'] . '-12-31';
 				}
 				// If no end date defined, fall back to this year's end
 				else {
 					$end_of_year = date( 'Y' ) . '-12-31';
 				}
 
-				$query->set( 'eventDisplay', 'custom' );
-				$query->set( 'start_date', $start_of_year );
-				$query->set( 'end_date', $end_of_year );
-				$query->set( 'posts_per_page', - 1 );
+				// Adding one day to the end date to include the submitted end day
+				$end_of_year = date( 'Y-m-d', strtotime( $end_of_year . '+1 days' ) );
+
+				$args['eventDisplay']   = 'custom';
+				$args['start_date']     = $start_of_year;
+				$args['end_date']       = $end_of_year;
+				$args['posts_per_page'] = -1;
+				$args['hide_upcoming']  = true;
+
 			}
+
+			return $args;
 		}
 
 		/**
 		 * Validates the date
 		 *
 		 * param $date
+		 *
 		 * @param string $format
 		 *
 		 * @return bool
 		 */
 		public function validate_date( $date, $format = 'Y-m-d H:i:s' ) {
 			$d = DateTime::createFromFormat( $format, $date );
+
 			return $d && $d->format( $format ) == $date;
 		}
 

@@ -3,9 +3,9 @@ Contributors: ModernTribe
 Donate link: http://m.tri.be/29
 Tags: events, calendar, ical, export
 Requires at least: 4.5
-Tested up to: 4.9.6
+Tested up to: 5.2.3
 Requires PHP: 5.6
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL version 3 or any later version
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -55,6 +55,11 @@ Please visit our [extension library](https://theeventscalendar.com/extensions/) 
 We're always interested in your feedback and our [premium forums](https://theeventscalendar.com/support-forums/) are the best place to flag any issues. Do note, however, that the degree of support we provide for extensions like this one tends to be very limited.
 
 == Changelog ==
+
+= [1.1.0] 2019-09-25 =
+* Fix - The extension now works with TEC 4.9.8
+* Fix - Sanitize incoming values
+* Tweak - Feed will now include events happening on the end date
 
 = [1.0.0] 2018-07-09 =
 
