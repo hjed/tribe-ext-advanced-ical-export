@@ -59,7 +59,7 @@ We're always interested in your feedback and our [premium forums](https://theeve
 
 ## Changelog
 
-### [1.1.0] 2019-09-25
+### [1.1.0] 2019-10-11
 
 * Fix - The extension now works with TEC 4.9.8
 * Fix - Sanitize incoming values
