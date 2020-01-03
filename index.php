@@ -66,6 +66,86 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			// Insert filters and hooks here
 			add_filter( 'tribe_ical_feed_month_view_query_args', array( $this, 'filter_ical_query' ) );
 			add_filter( 'tribe_events_ical_events_list_args', array( $this, 'filter_ical_query' ) );
+			add_filter( 'tribe_ical_feed_posts_per_page', array($this, 'filter_ical_posts_per_page' ) );
+			add_action( 'init', array( $this, 'ical_rewrite_rule' ) );
+			add_action( 'pre_get_posts', array( $this, 'add_ical_query_vars' ) );
+		}
+
+
+		/**
+		 * It sucks to hardcode start/end dates into a feed, so let's hide the query string
+		 * behind a friendly rewritten url.
+		 *
+		 * @param $query
+		 */
+		public function ical_rewrite_rule () {
+			$start_date = new DateTime();
+			$end_date = new DateTime();
+
+			$start_date->modify('-3 months');
+			$end_date->modify('+1 year');
+
+			$qs = http_build_query( array(
+				'post_type' => 'tribe_events',
+				'eventDisplay' => 'custom',
+				'ical' => 1,
+				'start_date' => $start_date->format('Y-m-d'),
+				'end_date' => $end_date->format('Y-m-d')
+			) );
+
+			add_rewrite_rule(
+				'ical\??.*/?$',
+				'index.php?' . $qs,
+				'top'
+			);
+		}
+
+		/**
+		 * This plugin relies on values in $_GET that aren't set if we're behind the
+		 * rewritten url /ical. We set those values here.
+		 *
+		 * @param $query
+		 */
+		public function add_ical_query_vars ($query) {
+			if ($query->query['ical'] != 1) {
+				return;
+			}
+
+			$_GET['ical'] = 1;
+			$_GET['tribe_display'] = $query->query['eventDisplay'];
+			$_GET['start_date'] = $query->query['start_date'];
+			$_GET['end_date'] = $query->query['end_date'];
+		}
+
+		/**
+		 * Tribe__Events__iCal::feed_posts_per_page() doesn't allow posts_per_page to be
+		 * set to -1, and defaults to 30 if it is. We override this to an arbitrarily large
+		 * number here.
+		 *
+		 * @param $count
+		 *
+		 * @return int
+		 */
+		public function filter_ical_posts_per_page( $count ) {
+			if ( ! $this->is_ical_query() ) {
+				return;
+			}
+
+			return 9999;
+		}
+
+		private function is_ical_query() {
+			$filters = [
+				'ical'					=> FILTER_SANITIZE_NUMBER_INT
+			];
+			$vars = filter_var_array( $_GET, $filters );
+
+			// If ical is not set in the URL then bail
+			if ( ! isset( $vars['ical'] ) || $vars['ical'] != 1 ) {
+				return false;
+			} else {
+				return true;
+			}
 		}
 
 		/**
@@ -83,12 +163,13 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 				'start_date'    => FILTER_SANITIZE_STRING,
 				'end_date'      => FILTER_SANITIZE_STRING,
 			];
-			$vars = filter_input_array( INPUT_GET, $filters );
+			$vars = filter_var_array( $_GET, $filters );
 
 			// If ical is not set in the URL then bail
 			if ( ! isset( $vars['ical'] ) || $vars['ical'] != 1 ) {
 				return;
 			}
+
 
 			if ( $vars['tribe_display'] === 'custom' ) {
 
@@ -140,6 +221,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 				$args['end_date']       = $end_of_year;
 				$args['posts_per_page'] = -1;
 				$args['hide_upcoming']  = true;
+				$args['tribe_remove_date_filters'] = true;
 
 			}
 
