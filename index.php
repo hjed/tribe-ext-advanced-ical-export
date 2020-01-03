@@ -67,8 +67,23 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			add_filter( 'tribe_ical_feed_month_view_query_args', array( $this, 'filter_ical_query' ) );
 			add_filter( 'tribe_events_ical_events_list_args', array( $this, 'filter_ical_query' ) );
 			add_filter( 'tribe_ical_feed_posts_per_page', array($this, 'filter_ical_posts_per_page' ) );
+			add_filter( 'tribe_ical_properties', array( $this, 'filter_ical_feed_properties' ) );
 			add_action( 'init', array( $this, 'ical_rewrite_rule' ) );
 			add_action( 'pre_get_posts', array( $this, 'add_ical_query_vars' ) );
+		}
+
+		/**
+		 * Add refresh-interval to ical feed.
+		 *
+		 * @param $query
+		 */
+		public function filter_ical_feed_properties ( $content ) {
+
+			$content .= "REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\n";
+			$content .= "X-PUBLISHED-TTL:PT1H\r\n";
+
+			return $content;
+
 		}
 
 
