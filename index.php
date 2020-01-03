@@ -1,8 +1,7 @@
 <?php
 /**
- * Plugin Name:       The Events Calendar Extension: Advanced iCal Export
- * Plugin URI:        https://theeventscalendar.com/extensions/advanced-ical-export/
- * GitHub Plugin URI: https://github.com/mt-support/tribe-ext-advanced-ical-export/
+ * Plugin Name:       CUSTOM: The Events Calendar Extension: Advanced iCal Export
+ * GitHub Plugin URI: https://github.com/HoustonDSA/tribe-ext-advanced-ical-export
  * Description:       The extension gives you advanced export possibilities through the iCal feed.
  * Version:           1.1.0
  * Extension Class:   Tribe__Extension__Advanced_iCal_Export
