@@ -22,6 +22,8 @@
  *     GNU General Public License for more details.
  */
 
+use Tribe\Events\Views\V2\Template\Excerpt;
+
 // Do not load unless Tribe Common is fully loaded and our class does not yet exist.
 if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Advanced_iCal_Export' ) ) {
 	/**
@@ -67,9 +69,26 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			add_filter( 'tribe_events_ical_events_list_args', array( $this, 'filter_ical_query' ) );
 			add_filter( 'tribe_ical_feed_posts_per_page', array($this, 'filter_ical_posts_per_page' ) );
 			add_filter( 'tribe_ical_properties', array( $this, 'filter_ical_feed_properties' ) );
+			add_filter( 'tribe_get_ical_link', array( $this, 'get_ical_link' ), 10, 1 );
+			add_filter( 'tribe_events_views_v2_view_ical_repository_args', array($this, 'filter_repo_args_for_ical' ), 10, 2 );
 			add_action( 'init', array( $this, 'ical_rewrite_rule' ) );
 			add_action( 'pre_get_posts', array( $this, 'add_ical_query_vars' ) );
+			add_action( 'wp_footer', array( $this, 'cliff_ical_link_js_override_webcal'), 100 );
 		}
+
+		/**
+		 * Returns the url for the iCal generator for lists of posts.
+		 *
+		 * @param string $output The existing output
+		 *
+		 * @return string
+		 */
+		public function get_ical_link( $output ) {
+			$tec = Tribe__Events__Main::instance();
+
+			return add_query_arg( [ 'ical' => 1, 'eventDisplay' => 'calendar' ], $tec->getLink( 'list' ) );
+		}
+
 
 		/**
 		 * Add refresh-interval to ical feed.
@@ -104,7 +123,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 				'eventDisplay' => 'custom',
 				'ical' => 1,
 				'start_date' => $start_date->format('Y-m-d'),
-				'end_date' => $end_date->format('Y-m-d')
+				'end_date' => $end_date->format('Y-m-d'),
 			) );
 
 			add_rewrite_rule(
@@ -243,6 +262,47 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 		}
 
 		/**
+		 * Filtering the query for dates
+		 *
+		 * @param $args
+		 *
+		 * @return array
+		 */
+		public function filter_repo_args_for_ical( $args, $view ) {
+
+
+			$filters = [
+				'ical'          => FILTER_SANITIZE_NUMBER_INT,
+				'tribe_display' => FILTER_SANITIZE_STRING,
+				'start_date'    => FILTER_SANITIZE_STRING,
+				'end_date'      => FILTER_SANITIZE_STRING,
+			];
+			$vars = filter_var_array( $_GET, $filters );
+
+			// If ical is not set in the URL then bail
+			if ( ! isset( $vars['ical'] ) || $vars['ical'] != 1 ) {
+				return;
+			}
+
+
+			if ( $vars['tribe_display'] === 'calendar' ) {
+				$start_date = new DateTime();
+				$end_date = new DateTime();
+
+				$start_date->modify('-3 months');
+				$end_date->modify('+1 year');
+
+				$args['eventDisplay']   = 'custom';
+				$args['start_date']     = $start_date->format('Y-m-d');
+				$args['end_date']       = $end_date->format('Y-m-d');
+				$args['posts_per_page'] = -1;
+
+			}
+
+			return $args;
+		}
+
+		/**
 		 * Validates the date
 		 *
 		 * param $date
@@ -256,6 +316,46 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 
 			return $d && $d->format( $format ) == $date;
 		}
+
+		/**
+		 * The Events Calendar: Change Event Archives' iCalendar export links to webcal://
+		 *
+		 * This causes the "iCal Export" button to recommend to calendar applications
+		 * (e.g. Apple, Outlook, etc.) that they should *subscribe* instead of *download*.
+		 *
+		 * We have to use JavaScript instead of PHP because the "Export Events"
+		 * iCalendar link gets built via JS via
+		 * /wp-content/plugins/the-events-calendar/src/resources/js/tribe-events.min.js
+		 * (the script with the `tribe-events-calendar-script` handle).
+		 *
+		 * If we were to use PHP (using the `tribe_get_ical_link`,
+		 * `tribe_get_single_ical_link`, and `tribe_events_force_filtered_ical_link`
+		 * filters), the link would be static instead of being dynamic to things like
+		 * an Event Category archive page.
+		 *
+		 * @link https://gist.github.com/cliffordp/be034504a2c530495b7d58e704352069
+		 * @link https://tribe.uservoice.com/forums/195723-feature-ideas/suggestions/31305556-add-true-subscribe-functionality-for-ical-google
+		 */
+		function cliff_ical_link_js_override_webcal() {
+			wp_enqueue_script( 'jquery' );
+			?>
+			<script type="text/javascript">
+				jQuery( document ).ready( function ( $ ) {
+					var url = $( 'a.tribe-events-c-ical__link' ).attr( 'href' );
+
+					url = url.replace( 'https://', 'webcal://' );
+					url = url.replace( 'http://', 'webcal://' );
+					// also replace with list view to get full ical
+					url = url.replace('month', 'list');
+					url += '&eventDisplay=calendar';
+
+					$( 'a.tribe-events-c-ical__link' ).attr( 'href', url );
+				} );
+			</script>
+			<?php
+		}
+
+
 
 	} // end class
 } // end if class_exists check
