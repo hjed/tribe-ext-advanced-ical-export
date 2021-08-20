@@ -71,6 +71,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			add_filter( 'tribe_ical_properties', array( $this, 'filter_ical_feed_properties' ) );
 			add_filter( 'tribe_get_ical_link', array( $this, 'get_ical_link' ), 10, 1 );
 			add_filter( 'tribe_events_views_v2_view_ical_repository_args', array($this, 'filter_repo_args_for_ical' ), 10, 2 );
+			add_filter( 'tribe_events_views_v2_view_after_events_html', array($this, 'filter_add_google_calendar_ical_link' ), 10, 2 );
 			add_action( 'init', array( $this, 'ical_rewrite_rule' ) );
 			add_action( 'pre_get_posts', array( $this, 'add_ical_query_vars' ) );
 			add_action( 'wp_footer', array( $this, 'cliff_ical_link_js_override_webcal'), 100 );
@@ -300,6 +301,47 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			}
 
 			return $args;
+		}
+
+		/**
+		 * Adds instructions for subscribing to a calendar
+		 *
+		 * @param string $after
+		 * @param View_Interface $view
+		 * @return string the after html
+		 */
+		public function filter_add_google_calendar_ical_link( $after, $view ) {
+			if ( $view ) {
+				$view_url = $view->get_url_object();
+				$existing_args = $view_url->get_query_args();
+				$existing_args = array_map(
+					function($v) { return null; },
+					$existing_args
+				);
+				$view_url->add_query_args($existing_args);
+				$view_url->add_query_args(  array(
+					'ical' => '1',
+					'eventDisplay' => 'calendar'
+				) );
+				
+				$google_url = (string)$view_url;
+				
+				// overide the view
+				$google_url = str_replace('month', 'list', $google_url);
+				$ical_url = str_replace('http://', 'webcal://', $google_url);
+				$ical_url = str_replace('https://', 'webcal://', $ical_url);
+				
+			    
+				$category = single_term_title('', false);
+				$after.=sprintf(
+					'<div class="tribe-events-subscribe-to-calendar-box"><h3>Subscribe to the %s%s Calendar</h3>Subscribe to this calendar in Google Calendar by copying this url into the "Subscribe via URL" box in your Google Calendar: %s. Subscribe in a desktop program such as ICal or Outlook by clicking <a href="%s">this link</a></div>',
+					esc_html__( get_bloginfo('name') ),
+					empty($category) ? '' : ' - ' . $category,
+					$google_url,
+					$ical_url
+				);
+			}
+			return $after;
 		}
 
 		/**
