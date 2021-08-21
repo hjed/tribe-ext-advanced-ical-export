@@ -69,6 +69,7 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 			add_filter( 'tribe_events_ical_events_list_args', array( $this, 'filter_ical_query' ) );
 			add_filter( 'tribe_ical_feed_posts_per_page', array($this, 'filter_ical_posts_per_page' ) );
 			add_filter( 'tribe_ical_properties', array( $this, 'filter_ical_feed_properties' ) );
+			add_filter( 'tribe_ical_feed_item', array( $this, 'filter_ical_feed_item'), 10, 2 );
 			add_filter( 'tribe_get_ical_link', array( $this, 'get_ical_link' ), 10, 1 );
 			add_filter( 'tribe_events_views_v2_view_ical_repository_args', array($this, 'filter_repo_args_for_ical' ), 10, 2 );
 			add_filter( 'tribe_events_views_v2_view_after_events_html', array($this, 'filter_add_google_calendar_ical_link' ), 10, 2 );
@@ -103,6 +104,47 @@ if ( class_exists( 'Tribe__Extension' ) && ! class_exists( 'Tribe__Extension__Ad
 
 			return $content;
 
+		}
+
+		/**
+		 * Add additional fields to the ical data
+		 *
+		 * @param array $item the existing fields
+		 * @param WP_Post $event_post the posts
+		 */
+		public function filter_ical_feed_item ( $item, $event_post ) {
+
+
+			$organizer_email = tribe_get_organizer_email( $event_post->ID, false );
+			if ( $organizer_email ) {
+				$organizer_id = tribe_get_organizer_id( $event_post->ID );
+				$organizer    = get_post( $organizer_id );
+
+				if ( $organizer_id ) {
+					$item['ITEM'] = sprintf( 'ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN="%s":MAILTO:%s', rawurlencode( $organizer->post_title ), $organizer_email );
+				} else {
+					$item['ITEM'] = sprintf( 'ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;MAILTO:%s', $organizer_email );
+				}
+			}
+			$item['DESCRIPTION'] = ($item['DESCRIPTION'] ?? '') . '\\n\\n' . tribe_get_event_link($event_post->ID, false);
+			if ( !empty($event_post->post_content) ) {
+				$item['X-ALT-DESC'] = sprintf(
+					'X-ALT-DESC;FMTTYPE=text/html:%s',
+					$this->replace(apply_filters('the_content', $event_post->post_content) . tribe_get_event_link($event_post->ID, true))
+				);
+			}
+
+			return $item;
+
+		}
+
+		/**
+		 * Stolen from iCal.php
+		 */
+		protected function replace( $text = '', $search = [], $replacement = [] ) {
+			$search = empty( $search ) ? [ ',', "\n", "\r", ';' ] : $search;
+			$replacement = empty( $replacement ) ? [ '\,', '\n', '', '\;' ] : $replacement;
+			return str_replace( $search, $replacement, $text);
 		}
 
 
